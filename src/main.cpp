@@ -137,7 +137,7 @@ static std::wstring FormatTime(ULONGLONG ms){
 static ULONGLONG TodayTotal(){ULONGLONG n=0;for(auto&x:g_usage)n+=x.second;return n;}
 static void LoadToday(){
  g_usage.clear(); g_today=DateKey();
- std::wstring p=Join(g_dataDir,g_today+L".csv"); std::wifstream f(std::filesystem::path(p)); if(!f)return;
+ std::wstring p=Join(g_dataDir,g_today+L".csv"); std::wifstream f{std::filesystem::path(p)}; if(!f)return;
  std::wstring line; std::getline(f,line);
  while(std::getline(f,line)){
   size_t a=line.find(L",\""); if(a==std::wstring::npos)continue;
