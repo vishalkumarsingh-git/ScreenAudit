@@ -19,8 +19,8 @@
 - Executable-name attribution, with best-effort child-process lookup for `ApplicationFrameHost.exe`.
 - Idle exclusion using `GetLastInputInfo()` on a 15-second timer; default cutoff is five minutes.
 - Daily UTF-8 CSV append logs named `YYYY-MM-DD.csv`, with binary-safe multi-day export.
-- Redesigned Windows-style left navigation (Screen Time, Reports, Do Not Monitor, Settings) and card-based dashboard.
-- Do Not Monitor page: exclude previously observed executable names from future tracking; existing CSV history is retained.
+- Windows Media Player-inspired navigation (Screen Time, Reports, Settings), neumorphic Fluent-style dashboard cards, hourly session chart, category totals, application icons, and a most-used list. Hidden Apps is a sub-section inside Settings.
+- Hidden Apps settings: exclude previously observed executable names from future tracking; existing CSV history is retained.
 - Browser context: attempts to read the active address-bar value through Windows UI Automation for supported browsers (Chrome, Edge, Brave, Firefox, Opera, Vivaldi). Known domains such as Physics Wallah, YouTube, Instagram, ChatGPT, Gemini, Claude, and Perplexity receive labels. The full URL is not written to CSV.
 - Settings page and persisted Run at sign-in toggle.
 - Notification-area context menu: open, pause/resume, export, startup toggle, dark-mode toggle, idle-cutoff selection (3/5/10 minutes), and exit.
@@ -50,12 +50,12 @@ Windows does not expose every macOS Screen Time capability through ordinary Win3
 
 ## Build
 
-GitHub Actions builds on `windows-latest` with MinGW-w64, packages `ScreenAudit-Setup-x64.exe` with Inno Setup, and uploads both the executable and installer as the `ScreenAudit-windows-x64` artifact. The installer places the app under Program Files and creates a Start Menu shortcut; desktop and startup shortcuts are optional.
+GitHub Actions builds on `windows-latest` with MSVC and the Windows SDK, packages `ScreenAudit-Setup-x64.exe` with Inno Setup, and uploads both the executable and installer as the `ScreenAudit-windows-x64` artifact. The installer places the app under Program Files and creates a Start Menu shortcut; desktop and startup shortcuts are optional.
 
-Local MinGW-w64 build:
+Local MSVC build (Developer PowerShell for Visual Studio):
 
 ```bash
-g++ -std=c++17 -O2 -Wall -Wextra -municode src/main.cpp -o ScreenAudit.exe -static -static-libgcc -static-libstdc++ -lgdiplus -luser32 -lgdi32 -lshell32 -lpsapi -lwtsapi32 -ldwmapi -lcomdlg32 -lcomctl32 -ladvapi32 -luiautomationcore -lole32 -loleaut32 -mwindows
+cl /nologo /utf-8 /std:c++17 /O2 /W4 /EHsc /MT /DUNICODE /D_UNICODE src\\main.cpp /Fe:ScreenAudit.exe /link /SUBSYSTEM:WINDOWS gdiplus.lib user32.lib gdi32.lib shell32.lib psapi.lib wtsapi32.lib dwmapi.lib comdlg32.lib advapi32.lib UIAutomationCore.lib ole32.lib oleaut32.lib
 ```
 
 The target is 64-bit Windows. A successful commit does not itself mean the executable has compiled; check the Actions run.
