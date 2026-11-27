@@ -220,7 +220,11 @@ static void DrawText(Graphics&g,const std::wstring&s,REAL x,REAL y,REAL size,Col
 static std::wstring FindProcessImage(const std::wstring& exe){
  HANDLE snap=CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS,0);if(snap==INVALID_HANDLE_VALUE)return {};
  PROCESSENTRY32W pe{};pe.dwSize=sizeof(pe);std::wstring result;
- if(Process32FirstW(snap,&pe)){do{if(_wcsicmp(pe.szExeFile,exe.c_str())==0){result=ProcessPath(pe.th32ProcessID);if(result!=L"Unknown")break;}}while(Process32NextW(snap,&pe));}
+ if(Process32FirstW(snap,&pe)){do{if(_wcsicmp(pe.szExeFile,exe.c_str())==0){
+  HANDLE ph=OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION,FALSE,pe.th32ProcessID);
+  if(ph){wchar_t full[32768]={};DWORD n=_countof(full);if(QueryFullProcessImageNameW(ph,0,full,&n))result.assign(full,n);CloseHandle(ph);}
+  if(!result.empty())break;
+ }}while(Process32NextW(snap,&pe));}
  CloseHandle(snap);return result;
 }
 static HICON AppIcon(const std::wstring& exe){
