@@ -1,6 +1,7 @@
 #define UNICODE
 #define _UNICODE
 #define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
 #include <windows.h>
 #include <windowsx.h>
 #include <propidl.h>
@@ -231,7 +232,7 @@ static HICON AppIcon(const std::wstring& exe){
  return nullptr;
 }
 static void RoundCard(Graphics&g,REAL x,REAL y,REAL w,REAL h){
- GraphicsPath p;p.AddArc(x,y,16,16,180,90);p.AddArc(x+w-16,y,16,16,270,90);p.AddArc(x+w-16,y+h-16,16,16,0,90);p.AddArc(x,y+h-16,16,16,90,90);p.CloseFigure();
+ GraphicsPath p;p.AddArc(RectF(x,y,16.0f,16.0f),180.0f,90.0f);p.AddArc(RectF(x+w-16,y,16.0f,16.0f),270.0f,90.0f);p.AddArc(RectF(x+w-16,y+h-16,16.0f,16.0f),0.0f,90.0f);p.AddArc(RectF(x,y+h-16,16.0f,16.0f),90.0f,90.0f);p.CloseFigure();
  SolidBrush shadow(Color(22,40,55,80));g.TranslateTransform(0,3);g.FillPath(&shadow,&p);g.ResetTransform();
  LinearGradientBrush face(RectF(x,y,w,h),Color(255,249,251,255),Color(255,235,240,248),LinearGradientModeVertical);g.FillPath(&face,&p);
  Pen edge(Color(255,255,255,255),1);g.DrawPath(&edge,&p);
@@ -255,7 +256,7 @@ static void Paint(HWND hwnd){
  Pen separator(Color(255,218,226,237),1);g.DrawLine(&separator,219,0,219,h);
  DrawText(g,L"◷  ScreenAudit",20,20,19,ink,true);DrawText(g,L"LOCAL ACTIVITY",22,55,9,muted,true);
  const wchar_t* nav[]={L"⌂   Screen Time",L"▤   Reports",L"⚙   Settings"};
- for(int i=0;i<3;i++){REAL y=96+i*54;if(g_page==i){RoundCard(g,9,y,201,43);SolidBrush stripe(accent);g.FillRectangle(&stripe,8,y+10,3,23);}DrawText(g,nav[i],24,y+13,13,g_page==i?accent:ink,g_page==i);}
+ for(int i=0;i<3;i++){REAL y=96+i*54;if(g_page==i){RoundCard(g,9,y,201,43);SolidBrush stripe(accent);g.FillRectangle(&stripe,RectF(8.0f,y+10.0f,3.0f,23.0f));}DrawText(g,nav[i],24,y+13,13,g_page==i?accent:ink,g_page==i);}
  DrawText(g,L"FREE  •  ALL FEATURES",18,h-27,9,muted,true);
  DrawText(g,g_page==0?L"Screen Time":g_page==1?L"Reports":L"Settings",246,39,26,ink,true);
  DrawText(g,L"WINDOWS DESKTOP",247,18,9,muted,true);
@@ -279,15 +280,15 @@ static void Paint(HWND hwnd){
   RoundCard(g,240,505,w-264,h-525);DrawText(g,L"MOST USED APPLICATIONS",262,521,10,muted,true);
   REAL y=550;ULONGLONG maxv=rows.empty()?1:rows.front().second;
   for(size_t i=0;i<rows.size()&&i<4&&y<h-48;i++){
-   HICON ic=AppIcon(rows[i].first);if(ic){Bitmap ib(ic);g.DrawImage(&ib,262,y-2,30,30);}
+   HICON ic=AppIcon(rows[i].first);if(ic){Bitmap ib(ic);g.DrawImage(&ib,RectF(262.0f,y-2.0f,30.0f,30.0f));}
    DrawText(g,rows[i].first,302,y,12,ink,true);DrawText(g,FormatTime(rows[i].second),w-140,y,11,muted);
-   SolidBrush track(Color(255,221,228,238)),fill(accent);g.FillRectangle(&track,302,y+21,w-445,5);g.FillRectangle(&fill,302,y+21,(REAL)(w-445)*(REAL)rows[i].second/(REAL)maxv,5);y+=42;
+   SolidBrush track(Color(255,221,228,238)),fill(accent);g.FillRectangle(&track,RectF(302.0f,y+21.0f,(REAL)(w-445),5.0f));g.FillRectangle(&fill,RectF(302.0f,y+21.0f,(REAL)(w-445)*(REAL)rows[i].second/(REAL)maxv,5.0f));y+=42;
   }
   if(rows.empty())DrawText(g,L"Your usage will appear here as you use Windows.",263,560,12,muted);
   DrawText(g,L"Pickups / unlocks this session: "+std::to_wstring(g_pickups),w-390,h-22,9,muted);
  }else if(g_page==1){
   RoundCard(g,240,82,w-264,h-105);DrawText(g,L"APPLICATION USAGE",263,101,10,muted,true);REAL y=137;
-  for(auto&r:rows){if(y>h-58)break;HICON ic=AppIcon(r.first);if(ic){Bitmap ib(ic);g.DrawImage(&ib,263,y-3,28,28);}DrawText(g,r.first,303,y,13,ink,true);DrawText(g,FormatTime(r.second),w-145,y,12,muted);y+=39;}
+  for(auto&r:rows){if(y>h-58)break;HICON ic=AppIcon(r.first);if(ic){Bitmap ib(ic);g.DrawImage(&ib,RectF(263.0f,y-3.0f,28.0f,28.0f));}DrawText(g,r.first,303,y,13,ink,true);DrawText(g,FormatTime(r.second),w-145,y,12,muted);y+=39;}
   if(rows.empty())DrawText(g,L"No activity recorded yet.",263,145,13,muted);
  }else{
   // Settings sub-navigation: Hidden Apps belongs here, not in the main sidebar.
@@ -304,7 +305,7 @@ static void Paint(HWND hwnd){
    DrawText(g,L"Only recognized site labels are shown; full URLs are not saved.",263,420,11,muted);
   }else{
    RoundCard(g,240,157,w-264,h-180);DrawText(g,L"Choose apps to hide from future activity tracking. Existing history stays intact.",263,177,11,muted);
-   REAL y=213;for(auto&r:rows){if(y>h-45)break;HICON ic=AppIcon(r.first);if(ic){Bitmap ib(ic);g.DrawImage(&ib,263,y-4,26,26);}DrawText(g,r.first,300,y,12,ink,true);
+   REAL y=213;for(auto&r:rows){if(y>h-45)break;HICON ic=AppIcon(r.first);if(ic){Bitmap ib(ic);g.DrawImage(&ib,RectF(263.0f,y-4.0f,26.0f,26.0f));}DrawText(g,r.first,300,y,12,ink,true);
     bool hidden=g_ignoredApps.count(r.first)!=0;RoundCard(g,w-390,y-7,112,29);DrawText(g,hidden?L"Hidden":L"Monitor",w-375,y,10,hidden?accent:muted,true);y+=37;}
    if(rows.empty())DrawText(g,L"Applications appear here after they have been observed.",263,220,12,muted);
   }
@@ -373,7 +374,9 @@ static LRESULT CALLBACK WndProc(HWND h,UINT m,WPARAM wp,LPARAM lp){
   int x=GET_X_LPARAM(lp),y=GET_Y_LPARAM(lp);
   if(x<220&&y>=96&&y<258){g_page=(y-96)/54;InvalidateRect(h,nullptr,TRUE);}
   else if(x>clientW-120&&y<60){FlushCurrent();g_tracking=!g_tracking;SaveSetting(L"Tracking",L"Enabled",g_tracking);g_lastTick=GetTickCount64();InvalidateRect(h,nullptr,TRUE);}
-  else if(g_page==2&&y>=82&&y<=142&&x>=370&&x<=510){g_settingsTab=1;InvalidateRect(h,nullptr,TRUE);}\n  else if(g_page==2&&y>=82&&y<=142&&x>=240&&x<370){g_settingsTab=0;InvalidateRect(h,nullptr,TRUE);}\n  else if(g_page==2&&g_settingsTab==1&&x>clientW-410&&x<clientW-260&&y>=205){
+  else if(g_page==2&&y>=82&&y<=142&&x>=370&&x<=510){g_settingsTab=1;InvalidateRect(h,nullptr,TRUE);}
+  else if(g_page==2&&y>=82&&y<=142&&x>=240&&x<370){g_settingsTab=0;InvalidateRect(h,nullptr,TRUE);}
+  else if(g_page==2&&g_settingsTab==1&&x>clientW-410&&x<clientW-260&&y>=205){
    int idx=(y-213)/37;std::vector<std::pair<std::wstring,ULONGLONG>> r(g_usage.begin(),g_usage.end());std::sort(r.begin(),r.end(),[](auto&a,auto&b){return a.second>b.second;});
    if(idx>=0&&idx<(int)r.size()){auto name=r[idx].first;if(g_ignoredApps.count(name))g_ignoredApps.erase(name);else g_ignoredApps.insert(name);SaveIgnored();}
    InvalidateRect(h,nullptr,TRUE);
