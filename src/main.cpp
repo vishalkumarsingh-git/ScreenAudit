@@ -62,18 +62,22 @@ static void SaveSetting(const wchar_t* section,const wchar_t* key,DWORD v){
 static std::wstring CsvEscape(const std::wstring&s){
  std::wstring o=L"\""; for(wchar_t c:s){if(c==L'"')o+=L"\"\"";else o+=c;} return o+L"\"";
 }
-static std::wstring Utf8(const std::wstring&s){
- if(s.empty())return {}; int n=WideCharToMultiByte(CP_UTF8,0,s.c_str(),-1,nullptr,0,nullptr,nullptr);
- std::string x(n,'\0'); WideCharToMultiByte(CP_UTF8,0,s.c_str(),-1,x.data(),n,nullptr,nullptr);
- return std::wstring(x.begin(),x.end());
+static std::string ToUtf8(const std::wstring&s){
+ if(s.empty())return {};
+ int n=WideCharToMultiByte(CP_UTF8,0,s.data(),(int)s.size(),nullptr,0,nullptr,nullptr);
+ if(n<=0)return {};
+ std::string out((size_t)n,'\\0');
+ WideCharToMultiByte(CP_UTF8,0,s.data(),(int)s.size(),out.data(),n,nullptr,nullptr);
+ return out;
 }
 static void AppendCsv(const std::wstring& exe,ULONGLONG ms){
  if(ms<1000)return;
  std::wstring path=Join(g_dataDir,g_today+L".csv");
  bool exists=GetFileAttributesW(path.c_str())!=INVALID_FILE_ATTRIBUTES;
- std::wofstream f(path,std::ios::app); if(!f)return;
- if(!exists)f<<L"date,application,seconds\r\n";
- f<<CsvEscape(g_today)<<L","<<CsvEscape(exe)<<L","<<(ms/1000)<<L"\r\n";
+ std::ofstream f(path,std::ios::binary|std::ios::app); if(!f)return;
+ if(!exists)f<<"date,application,seconds\r\n";
+ std::wstring row=CsvEscape(g_today)+L","+CsvEscape(exe)+L","+std::to_wstring(ms/1000)+L"\r\n";
+ f<<ToUtf8(row);
 }
 static bool IsIdle(){
  LASTINPUTINFO li{}; li.cbSize=sizeof(li);
@@ -164,8 +168,8 @@ static void Paint(HWND hwnd){
  auto mc=Color(255,GetRValue(C_MUTED),GetGValue(C_MUTED),GetBValue(C_MUTED));
  DrawText(g,L"TODAY'S SCREEN TIME",40,112,10,mc,true);
  DrawText(g,FormatTime(TodayTotal()),40,138,27,tc,true);
- DrawText(g,L"DAILY AVERAGE",40+cw+gap,112,10,mc,true);
- DrawText(g,FormatTime(TodayTotal()),40+cw+gap,138,27,tc,true);
+ DrawText(g,L"TRACKED APPS",40+cw+gap,112,10,mc,true);
+ DrawText(g,std::to_wstring(g_usage.size()),40+cw+gap,138,27,tc,true);
  DrawText(g,L"CURRENT APP",40+2*(cw+gap),112,10,mc,true);
  DrawText(g,g_currentExe,40+2*(cw+gap),140,17,tc,true);
  Card(g,24,top+120,w-48,h-top-145);
@@ -189,13 +193,17 @@ static void ExportCsv(){
  o.lStructSize=sizeof(o);o.hwndOwner=g_hwnd;o.lpstrFilter=L"CSV files (*.csv)\0*.csv\0All files (*.*)\0*.*\0";
  o.lpstrFile=path;o.nMaxFile=MAX_PATH;o.Flags=OFN_OVERWRITEPROMPT|OFN_PATHMUSTEXIST;o.lpstrDefExt=L"csv";
  if(!GetSaveFileNameW(&o))return;
- std::wofstream out(path);if(!out)return;out<<L"date,application,seconds\r\n";
+ std::ofstream out(path,std::ios::binary);if(!out)return;out<<"date,application,seconds\r\n";
  WIN32_FIND_DATAW fd;HANDLE f=FindFirstFileW(Join(g_dataDir,L"????-??-??.csv").c_str(),&fd);
- if(f!=INVALID_HANDLE_VALUE){do{std::wifstream in(Join(g_dataDir,fd.cFileName));std::wstring line;while(std::getline(in,line))if(line.find(L"date,application")!=0)out<<line<<L"\r\n";}while(FindNextFileW(f,&fd));FindClose(f);}
+ if(f!=INVALID_HANDLE_VALUE){do{
+  std::ifstream in(Join(g_dataDir,fd.cFileName),std::ios::binary);
+  std::string line;bool header=true;
+  while(std::getline(in,line)){if(header){header=false;continue;}out<<line<<"\r\n";}
+ }while(FindNextFileW(f,&fd));FindClose(f);}
 }
 static void SetStartup(bool enabled){
  HKEY k; if(RegOpenKeyExW(HKEY_CURRENT_USER,L"Software\\Microsoft\\Windows\\CurrentVersion\\Run",0,KEY_SET_VALUE,&k)!=ERROR_SUCCESS)return;
- if(enabled){wchar_t p[MAX_PATH];GetModuleFileNameW(nullptr,p,MAX_PATH);RegSetValueExW(k,L"ScreenAudit",0,REG_SZ,(BYTE*)p,(DWORD)((wcslen(p)+1)*sizeof(wchar_t)));}
+ if(enabled){wchar_t p[MAX_PATH];GetModuleFileNameW(nullptr,p,MAX_PATH);std::wstring command=L"\""+std::wstring(p)+L"\"";RegSetValueExW(k,L"ScreenAudit",0,REG_SZ,(BYTE*)command.c_str(),(DWORD)((command.size()+1)*sizeof(wchar_t)));}
  else RegDeleteValueW(k,L"ScreenAudit");RegCloseKey(k);
 }
 static void TrayMenu(){
