@@ -2,6 +2,7 @@
 #define _UNICODE
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include <windowsx.h>
 #include <propidl.h>
 #include <gdiplus.h>
 #include <shellapi.h>
@@ -22,6 +23,7 @@
 #include <algorithm>
 #include <ctime>
 #include <cwchar>
+#include <cwctype>
 #include <set>
 #include <UIAutomation.h>
 #include <oleauto.h>
