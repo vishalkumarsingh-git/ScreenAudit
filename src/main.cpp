@@ -22,6 +22,9 @@
 #include <algorithm>
 #include <ctime>
 #include <cwchar>
+#include <set>
+#include <UIAutomation.h>
+#include <oleauto.h>
 
 #pragma comment(lib, "gdiplus.lib")
 #pragma comment(lib, "comctl32.lib")
@@ -33,7 +36,10 @@ static const UINT ID_TRAY=1;
 static HWND g_hwnd=nullptr;
 static HWINEVENTHOOK g_hook=nullptr;
 static ULONG_PTR g_gdiplus=0;
-static bool g_tracking=true, g_dark=false, g_closing=false;
+static bool g_tracking=true, g_dark=false, g_closing=false, g_startup=false;
+static int g_page=0;
+static std::set<std::wstring> g_ignoredApps;
+static std::wstring g_currentUrl, g_currentContext=L"App activity";
 static DWORD g_idleCutoff=5;
 static ULONGLONG g_lastTick=0;
 static std::wstring g_currentExe=L"Unknown", g_currentTitle=L"";
@@ -57,6 +63,10 @@ static void LoadSettings(){
  if(g_idleCutoff!=3&&g_idleCutoff!=5&&g_idleCutoff!=10)g_idleCutoff=5;
  g_tracking=GetPrivateProfileIntW(L"Tracking",L"Enabled",1,Ini(L"settings.ini").c_str())!=0;
  g_dark=GetPrivateProfileIntW(L"Appearance",L"Dark",0,Ini(L"settings.ini").c_str())!=0;
+ g_startup=GetPrivateProfileIntW(L"Startup",L"Enabled",0,Ini(L"settings.ini").c_str())!=0;
+ wchar_t ignored[8192]={}; GetPrivateProfileStringW(L"Privacy",L"IgnoredApps",L"",ignored,_countof(ignored),Ini(L"settings.ini").c_str());
+ std::wstring raw=ignored; size_t pos=0;
+ while(pos<raw.size()){size_t e=raw.find(L'|',pos);if(e==std::wstring::npos)e=raw.size();if(e>pos)g_ignoredApps.insert(raw.substr(pos,e-pos));pos=e+1;}
 }
 static void SaveSetting(const wchar_t* section,const wchar_t* key,DWORD v){
  wchar_t b[24]; swprintf(b,_countof(b),L"%lu",v); WritePrivateProfileStringW(section,key,b,Ini(L"settings.ini").c_str());
@@ -114,13 +124,63 @@ static std::wstring ForegroundTitle(){
 }
 static void FlushCurrent(){
  ULONGLONG now=GetTickCount64();
- if(g_lastTick && g_tracking && !IsIdle() && g_currentExe!=L"Unknown"){
+ if(g_lastTick && g_tracking && !IsIdle() && g_currentExe!=L"Unknown" && !g_ignoredApps.count(g_currentExe)){
   ULONGLONG d=now-g_lastTick; g_usage[g_currentExe]+=d; AppendCsv(g_currentExe,d);
  }
  g_lastTick=now;
 }
+static bool IsBrowser(const std::wstring& exe){
+ std::wstring e=exe;std::transform(e.begin(),e.end(),e.begin(),towlower);
+ return e==L"chrome.exe"||e==L"msedge.exe"||e==L"brave.exe"||e==L"firefox.exe"||e==L"opera.exe"||e==L"vivaldi.exe";
+}
+static std::wstring ReadBrowserUrl(HWND hwnd){
+ IUIAutomation* a=nullptr;IUIAutomationElement* root=nullptr;IUIAutomationCondition* cond=nullptr;IUIAutomationElementArray* arr=nullptr;
+ std::wstring result;HRESULT init=CoInitializeEx(nullptr,COINIT_APARTMENTTHREADED);bool uninit=SUCCEEDED(init);
+ if(SUCCEEDED(CoCreateInstance(CLSID_CUIAutomation,nullptr,CLSCTX_INPROC_SERVER,IID_IUIAutomation,(void**)&a))&&SUCCEEDED(a->ElementFromHandle(hwnd,&root))){
+  VARIANT v;VariantInit(&v);v.vt=VT_I4;v.lVal=UIA_EditControlTypeId;
+  if(SUCCEEDED(a->CreatePropertyCondition(UIA_ControlTypePropertyId,v,&cond))&&SUCCEEDED(root->FindAll(TreeScope_Descendants,cond,&arr))){
+   int n=0;arr->get_Length(&n);
+   for(int i=0;i<n&&i<80;i++){
+    IUIAutomationElement* el=nullptr;if(FAILED(arr->GetElement(i,&el))||!el)continue;
+    IUIAutomationValuePattern* vp=nullptr;
+    if(SUCCEEDED(el->GetCurrentPatternAs(UIA_ValuePatternId,IID_IUIAutomationValuePattern,(void**)&vp))&&vp){
+     BSTR b=nullptr;if(SUCCEEDED(vp->get_CurrentValue(&b))&&b){
+      std::wstring candidate(b,SysStringLen(b));SysFreeString(b);
+      if(candidate.rfind(L"https://",0)==0||candidate.rfind(L"http://",0)==0){result=candidate;vp->Release();el->Release();break;}
+     }vp->Release();
+    }el->Release();
+   }
+  }
+ }
+ if(arr)arr->Release();if(cond)cond->Release();if(root)root->Release();if(a)a->Release();if(uninit)CoUninitialize();return result;
+}
+static std::wstring ContextFromUrl(const std::wstring& url){
+ std::wstring u=url;std::transform(u.begin(),u.end(),u.begin(),towlower);
+ if(u.find(L"pw.live")!=std::wstring::npos||u.find(L"physicswallah")!=std::wstring::npos)return L"Physics Wallah • verified URL";
+ if(u.find(L"youtube.com")!=std::wstring::npos||u.find(L"youtu.be")!=std::wstring::npos)return L"YouTube • verified URL";
+ if(u.find(L"instagram.com")!=std::wstring::npos)return L"Instagram • verified URL";
+ if(u.find(L"chatgpt.com")!=std::wstring::npos||u.find(L"chat.openai.com")!=std::wstring::npos)return L"ChatGPT • verified URL";
+ if(u.find(L"gemini.google.com")!=std::wstring::npos)return L"Google Gemini • verified URL";
+ if(u.find(L"claude.ai")!=std::wstring::npos)return L"Claude • verified URL";
+ if(u.find(L"perplexity.ai")!=std::wstring::npos)return L"Perplexity • verified URL";
+ return L"Browser • URL detected";
+}
+static void SaveIgnored(){
+ std::wstring raw;for(const auto& x:g_ignoredApps){if(!raw.empty())raw+=L"|";raw+=x;}
+ WritePrivateProfileStringW(L"Privacy",L"IgnoredApps",raw.c_str(),Ini(L"settings.ini").c_str());
+}
+static void SaveStartup(bool enabled){
+ HKEY k;if(RegOpenKeyExW(HKEY_CURRENT_USER,L"Software\\Microsoft\\Windows\\CurrentVersion\\Run",0,KEY_SET_VALUE,&k)==ERROR_SUCCESS){
+  if(enabled){wchar_t p[MAX_PATH]={};GetModuleFileNameW(nullptr,p,MAX_PATH);std::wstring cmd=L"\""+std::wstring(p)+L"\"";RegSetValueExW(k,L"ScreenAudit",0,REG_SZ,(BYTE*)cmd.c_str(),(DWORD)((cmd.size()+1)*sizeof(wchar_t)));}
+  else RegDeleteValueW(k,L"ScreenAudit");RegCloseKey(k);
+ }
+ g_startup=enabled;SaveSetting(L"Startup",L"Enabled",enabled?1:0);
+}
 static void OnForeground(){
- FlushCurrent(); g_currentExe=ForegroundExe(); g_currentTitle=ForegroundTitle(); InvalidateRect(g_hwnd,nullptr,FALSE);
+ FlushCurrent();HWND w=GetForegroundWindow();g_currentExe=ForegroundExe();g_currentTitle=ForegroundTitle();
+ g_currentUrl.clear();g_currentContext=L"App activity";
+ if(IsBrowser(g_currentExe)){g_currentUrl=ReadBrowserUrl(w);g_currentContext=g_currentUrl.empty()?L"Browser • URL not available":ContextFromUrl(g_currentUrl);}
+ InvalidateRect(g_hwnd,nullptr,FALSE);
 }
 static void CALLBACK WinEventProc(HWINEVENTHOOK,DWORD,HWND,LONG,LONG,DWORD,DWORD){
  if(g_hwnd)PostMessageW(g_hwnd,WM_FOREGROUND,0,0);
