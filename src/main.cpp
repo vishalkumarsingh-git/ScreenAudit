@@ -41,7 +41,7 @@ static COLORREF C_BG, C_CARD, C_TEXT, C_MUTED, C_BORDER, C_BLUE=RGB(0,120,212);
 
 static std::wstring Join(const std::wstring&a,const std::wstring&b){return a+L"\\"+b;}
 static std::wstring DateKey(){
- SYSTEMTIME st; GetLocalTime(&st); wchar_t b[16]; swprintf_s(b,L"%04u-%02u-%02u",st.wYear,st.wMonth,st.wDay); return b;
+ SYSTEMTIME st; GetLocalTime(&st); wchar_t b[16]; swprintf(b,_countof(b),L"%04u-%02u-%02u",st.wYear,st.wMonth,st.wDay); return b;
 }
 static std::wstring AppDataDir(){
  wchar_t p[MAX_PATH]={}; DWORD n=GetEnvironmentVariableW(L"APPDATA",p,MAX_PATH);
@@ -56,7 +56,7 @@ static void LoadSettings(){
  g_dark=GetPrivateProfileIntW(L"Appearance",L"Dark",0,Ini(L"settings.ini").c_str())!=0;
 }
 static void SaveSetting(const wchar_t* section,const wchar_t* key,DWORD v){
- wchar_t b[24]; swprintf_s(b,L"%lu",v); WritePrivateProfileStringW(section,key,b,Ini(L"settings.ini").c_str());
+ wchar_t b[24]; swprintf(b,_countof(b),L"%lu",v); WritePrivateProfileStringW(section,key,b,Ini(L"settings.ini").c_str());
 }
 static std::wstring CsvEscape(const std::wstring&s){
  std::wstring o=L"\""; for(wchar_t c:s){if(c==L'"')o+=L"\"\"";else o+=c;} return o+L"\"";
@@ -124,7 +124,7 @@ static void RefreshColors(){
 }
 static std::wstring FormatTime(ULONGLONG ms){
  ULONGLONG m=ms/60000; wchar_t b[64];
- if(m>=60)swprintf_s(b,L"%lluh %llum",m/60,m%60);else swprintf_s(b,L"%llum",m);
+ if(m>=60)swprintf(b,_countof(b),L"%lluh %llum",m/60,m%60);else swprintf(b,_countof(b),L"%llum",m);
  return b;
 }
 static ULONGLONG TodayTotal(){ULONGLONG n=0;for(auto&x:g_usage)n+=x.second;return n;}
@@ -216,7 +216,7 @@ static LRESULT CALLBACK WndProc(HWND h,UINT m,WPARAM wp,LPARAM lp){
  switch(m){
  case WM_CREATE:{
   g_hwnd=h;NOTIFYICONDATAW n{};n.cbSize=sizeof(n);n.hWnd=h;n.uID=ID_TRAY;n.uFlags=NIF_MESSAGE|NIF_ICON|NIF_TIP;n.uCallbackMessage=WM_TRAY;
-  n.hIcon=LoadIconW(nullptr,IDI_APPLICATION);wcscpy_s(n.szTip,L"ScreenAudit");Shell_NotifyIconW(NIM_ADD,&n);
+  n.hIcon=LoadIconW(nullptr,IDI_APPLICATION);wcscpy_s(n.szTip,_countof(n.szTip),L"ScreenAudit");Shell_NotifyIconW(NIM_ADD,&n);
   WTSRegisterSessionNotification(h,NOTIFY_FOR_THIS_SESSION);
   g_hook=SetWinEventHook(EVENT_SYSTEM_FOREGROUND,EVENT_SYSTEM_FOREGROUND,nullptr,WinEventProc,0,0,WINEVENT_OUTOFCONTEXT|WINEVENT_SKIPOWNPROCESS);
   SetTimer(h,1,15000,nullptr);g_lastTick=GetTickCount64();OnForeground();return 0;}
