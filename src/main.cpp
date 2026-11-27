@@ -226,17 +226,17 @@ static void Paint(HWND hwnd){
  Bitmap bmp(w,h);Graphics g(&bmp);g.SetSmoothingMode(SmoothingModeAntiAlias);
  auto col=[](COLORREF c){return Color(255,GetRValue(c),GetGValue(c),GetBValue(c));};
  auto tc=col(C_TEXT),mc=col(C_MUTED),blue=Color(255,0,120,212);
- g.Clear(col(C_BG));SolidBrush side(Color(255,255,255));g.FillRectangle(&side,0,0,220,h);
+ g.Clear(col(C_BG));SolidBrush side(Color(255,255,255));g.FillRectangle(&side,(REAL)0,(REAL)0,(REAL)220,(REAL)h);
  Pen div(Color(255,226,226,230),1);g.DrawLine(&div,219,0,219,h);
  DrawText(g,L"◉  ScreenAudit",18,18,18,Color(255,28,28,32),true);
  DrawText(g,L"LOCAL ACTIVITY",19,53,9,Color(255,135,135,145),true);
  const wchar_t* nav[]={L"◉   Screen Time",L"▥   Reports",L"⊘   Do Not Monitor",L"⚙   Settings"};
- for(int i=0;i<4;i++){REAL y=92+i*48;if(g_page==i){SolidBrush active(Color(255,232,241,255));g.FillRectangle(&active,8,y,202,40);}DrawText(g,nav[i],20,y+10,13,g_page==i?blue:Color(255,42,42,48),g_page==i);}
+ for(int i=0;i<4;i++){REAL y=92+i*48;if(g_page==i){SolidBrush active(Color(255,232,241,255));g.FillRectangle(&active,(REAL)8,y,(REAL)202,(REAL)40);}DrawText(g,nav[i],20,y+10,13,g_page==i?blue:Color(255,42,42,48),g_page==i);}
  DrawText(g,L"FREE • ALL FEATURES",18,h-30,9,Color(255,110,110,120),true);
  const wchar_t* labels[]={L"Screen Time",L"Usage reports",L"Excluded applications",L"Settings"};
  DrawText(g,labels[g_page],244,38,25,tc,true);
  DrawText(g,g_page==0?L"WINDOWS DESKTOP":g_page==1?L"ACTIVITY HISTORY":g_page==2?L"PRIVACY CONTROLS":L"PREFERENCES",244,18,9,mc,true);
- SolidBrush btn(Color(255,255,255));Pen bp(Color(255,215,215,222),1);g.FillRectangle(&btn,w-112,16,92,34);g.DrawRectangle(&bp,w-112,16,92,34);
+ SolidBrush btn(Color(255,255,255));Pen bp(Color(255,215,215,222),1);g.FillRectangle(&btn,(REAL)(w-112),(REAL)16,(REAL)92,(REAL)34);g.DrawRectangle(&bp,(REAL)(w-112),(REAL)16,(REAL)92,(REAL)34);
  DrawText(g,g_tracking?L"Ⅱ  Pause":L"▶  Resume",w-100,26,11,tc,true);
  std::vector<std::pair<std::wstring,ULONGLONG>> rows(g_usage.begin(),g_usage.end());
  std::sort(rows.begin(),rows.end(),[](auto&a,auto&b){return a.second>b.second;});
@@ -248,7 +248,7 @@ static void Paint(HWND hwnd){
   DrawText(g,g_currentTitle,260,303,10,mc);
   Card(g,240,346,w-264,h-366);DrawText(g,L"MOST USED",260,365,11,mc,true);
   REAL y=396;ULONGLONG maxv=rows.empty()?1:rows.front().second;
-  for(size_t i=0;i<rows.size()&&i<10&&y<h-35;i++){DrawText(g,rows[i].first,262,y,13,tc,true);DrawText(g,FormatTime(rows[i].second),w-145,y,12,mc);SolidBrush track(Color(255,235,237,241)),fill(blue);g.FillRectangle(&track,262,y+22,w-410,5);g.FillRectangle(&fill,262,y+22,(REAL)(w-410)*(REAL)rows[i].second/(REAL)maxv,5);y+=42;}
+  for(size_t i=0;i<rows.size()&&i<10&&y<h-35;i++){DrawText(g,rows[i].first,262,y,13,tc,true);DrawText(g,FormatTime(rows[i].second),w-145,y,12,mc);SolidBrush track(Color(255,235,237,241)),fill(blue);g.FillRectangle(&track,(REAL)262,y+(REAL)22,(REAL)(w-410),(REAL)5);g.FillRectangle(&fill,262,y+22,(REAL)(w-410)*(REAL)rows[i].second/(REAL)maxv,5);y+=42;}
   if(rows.empty())DrawText(g,L"Your app usage will appear here as you use Windows.",262,405,13,mc);
  }else if(g_page==1){
   Card(g,240,92,w-264,h-116);DrawText(g,L"APPLICATION USAGE • TODAY",262,112,11,mc,true);REAL y=150;
@@ -256,7 +256,7 @@ static void Paint(HWND hwnd){
   if(rows.empty())DrawText(g,L"No activity recorded yet.",262,155,13,mc);
  }else if(g_page==2){
   Card(g,240,92,w-264,h-116);DrawText(g,L"Select apps to exclude from future tracking. Existing history is retained.",262,112,12,mc);
-  REAL y=152;for(auto&r:rows){if(y>h-60)break;DrawText(g,r.first,262,y,13,tc,true);bool ignored=g_ignoredApps.count(r.first)!=0;SolidBrush b(ignored?Color(255,232,241,255):Color(255,255,255));Pen p(Color(255,210,210,218),1);g.FillRectangle(&b,w-390,y-5,110,27);g.DrawRectangle(&p,w-390,y-5,110,27);DrawText(g,ignored?L"Excluded":L"Monitor",w-377,y+2,11,ignored?blue:tc,true);y+=39;}
+  REAL y=152;for(auto&r:rows){if(y>h-60)break;DrawText(g,r.first,262,y,13,tc,true);bool ignored=g_ignoredApps.count(r.first)!=0;SolidBrush b(ignored?Color(255,232,241,255):Color(255,255,255));Pen p(Color(255,210,210,218),1);g.FillRectangle(&b,(REAL)(w-390),y-(REAL)5,(REAL)110,(REAL)27);g.DrawRectangle(&p,(REAL)(w-390),y-(REAL)5,(REAL)110,(REAL)27);DrawText(g,ignored?L"Excluded":L"Monitor",w-377,y+2,11,ignored?blue:tc,true);y+=39;}
   if(rows.empty())DrawText(g,L"Apps appear here after they have been monitored.",262,155,13,mc);
  }else{
   Card(g,240,92,w-264,250);DrawText(g,L"GENERAL",262,112,11,mc,true);DrawText(g,L"Run ScreenAudit when I sign in",262,153,14,tc);DrawText(g,g_startup?L"Enabled":L"Disabled",w-340,153,12,g_startup?blue:mc,true);
