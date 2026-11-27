@@ -212,6 +212,12 @@ static void TrayMenu(){
  AppendMenuW(m,MF_STRING,101,g_tracking?L"Pause Tracking":L"Resume Tracking");
  AppendMenuW(m,MF_STRING,102,L"Export CSV Report");
  AppendMenuW(m,MF_STRING,103,L"Start with Windows (Toggle)");
+ AppendMenuW(m,MF_SEPARATOR,0,nullptr);
+ AppendMenuW(m,MF_STRING|MF_CHECKED*(g_dark?1:0),105,L"Dark mode");
+ AppendMenuW(m,MF_SEPARATOR,0,nullptr);
+ AppendMenuW(m,MF_STRING|MF_CHECKED*(g_idleCutoff==3?1:0),106,L"Idle cutoff: 3 minutes");
+ AppendMenuW(m,MF_STRING|MF_CHECKED*(g_idleCutoff==5?1:0),107,L"Idle cutoff: 5 minutes");
+ AppendMenuW(m,MF_STRING|MF_CHECKED*(g_idleCutoff==10?1:0),108,L"Idle cutoff: 10 minutes");
  AppendMenuW(m,MF_SEPARATOR,0,nullptr);AppendMenuW(m,MF_STRING,104,L"Exit");
  POINT p;GetCursorPos(&p);SetForegroundWindow(g_hwnd);
  int c=TrackPopupMenu(m,TPM_RETURNCMD|TPM_NONOTIFY,p.x,p.y,0,g_hwnd,nullptr);DestroyMenu(m);
@@ -219,6 +225,8 @@ static void TrayMenu(){
  if(c==101){FlushCurrent();g_tracking=!g_tracking;SaveSetting(L"Tracking",L"Enabled",g_tracking);g_lastTick=GetTickCount64();InvalidateRect(g_hwnd,nullptr,TRUE);}
  if(c==102)ExportCsv();
  if(c==103){HKEY k;bool on=false;if(RegOpenKeyExW(HKEY_CURRENT_USER,L"Software\\Microsoft\\Windows\\CurrentVersion\\Run",0,KEY_QUERY_VALUE,&k)==ERROR_SUCCESS){on=RegQueryValueExW(k,L"ScreenAudit",0,nullptr,nullptr,nullptr)==ERROR_SUCCESS;RegCloseKey(k);}SetStartup(!on);}
+ if(c==105){g_dark=!g_dark;SaveSetting(L"Appearance",L"Dark",g_dark?1:0);RefreshColors();BOOL dark=g_dark?TRUE:FALSE;DwmSetWindowAttribute(g_hwnd,20,&dark,sizeof(dark));InvalidateRect(g_hwnd,nullptr,TRUE);}
+ if(c==106||c==107||c==108){g_idleCutoff=c==106?3:(c==107?5:10);SaveSetting(L"Tracking",L"IdleCutoffMinutes",g_idleCutoff);}
  if(c==104){g_closing=true;DestroyWindow(g_hwnd);}
 }
 static LRESULT CALLBACK WndProc(HWND h,UINT m,WPARAM wp,LPARAM lp){
