@@ -66,7 +66,7 @@ static std::string ToUtf8(const std::wstring&s){
  if(s.empty())return {};
  int n=WideCharToMultiByte(CP_UTF8,0,s.data(),(int)s.size(),nullptr,0,nullptr,nullptr);
  if(n<=0)return {};
- std::string out((size_t)n,'\\0');
+ std::string out((size_t)n,'\0');
  WideCharToMultiByte(CP_UTF8,0,s.data(),(int)s.size(),out.data(),n,nullptr,nullptr);
  return out;
 }
