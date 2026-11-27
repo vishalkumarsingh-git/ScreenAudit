@@ -157,14 +157,17 @@ static std::wstring ReadBrowserUrl(HWND hwnd){
  if(arr)arr->Release();if(cond)cond->Release();if(root)root->Release();if(a)a->Release();if(uninit)CoUninitialize();return result;
 }
 static std::wstring ContextFromUrl(const std::wstring& url){
- std::wstring u=url;std::transform(u.begin(),u.end(),u.begin(),towlower);
- if(u.find(L"pw.live")!=std::wstring::npos||u.find(L"physicswallah")!=std::wstring::npos)return L"Physics Wallah • verified URL";
- if(u.find(L"youtube.com")!=std::wstring::npos||u.find(L"youtu.be")!=std::wstring::npos)return L"YouTube • verified URL";
- if(u.find(L"instagram.com")!=std::wstring::npos)return L"Instagram • verified URL";
- if(u.find(L"chatgpt.com")!=std::wstring::npos||u.find(L"chat.openai.com")!=std::wstring::npos)return L"ChatGPT • verified URL";
- if(u.find(L"gemini.google.com")!=std::wstring::npos)return L"Google Gemini • verified URL";
- if(u.find(L"claude.ai")!=std::wstring::npos)return L"Claude • verified URL";
- if(u.find(L"perplexity.ai")!=std::wstring::npos)return L"Perplexity • verified URL";
+ size_t scheme=url.find(L"://");if(scheme==std::wstring::npos)return L"Browser • URL not available";
+ size_t begin=scheme+3,end=url.find_first_of(L"/?#:",begin);std::wstring host=url.substr(begin,end==std::wstring::npos?std::wstring::npos:end-begin);
+ std::transform(host.begin(),host.end(),host.begin(),towlower);
+ auto domain=[&](const wchar_t* d){std::wstring suffix=L".";suffix+=d;size_t n=wcslen(d);return host==d||(host.size()>n&&host.compare(host.size()-n,n,d)==0&&host[host.size()-n-1]==L'.');};
+ if(domain(L"pw.live")||domain(L"physicswallah.com"))return L"Physics Wallah • verified URL";
+ if(domain(L"youtube.com")||domain(L"youtu.be"))return L"YouTube • verified URL";
+ if(domain(L"instagram.com"))return L"Instagram • verified URL";
+ if(domain(L"chatgpt.com")||domain(L"openai.com"))return L"ChatGPT / OpenAI • verified URL";
+ if(domain(L"gemini.google.com"))return L"Google Gemini • verified URL";
+ if(domain(L"claude.ai"))return L"Claude • verified URL";
+ if(domain(L"perplexity.ai"))return L"Perplexity • verified URL";
  return L"Browser • URL detected";
 }
 static void SaveIgnored(){
