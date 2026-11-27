@@ -244,7 +244,8 @@ static void Paint(HWND hwnd){
   Card(g,240,92,w-264,132);DrawText(g,L"ACTIVE TODAY",262,112,10,mc,true);DrawText(g,FormatTime(TodayTotal()),260,136,34,tc,true);
   DrawText(g,L"Tracked applications  "+std::to_wstring(g_usage.size()),262,188,11,mc);
   Card(g,240,242,w-264,86);DrawText(g,L"CURRENT ACTIVITY",260,258,10,mc,true);
-  DrawText(g,g_currentExe+L"   •   "+g_currentContext,260,281,14,tc,true);
+  DrawText(g,g_currentExe+L"   •   "+g_currentContext,260,281,13,tc,true);
+  DrawText(g,g_currentTitle,260,303,10,mc);
   Card(g,240,346,w-264,h-366);DrawText(g,L"MOST USED",260,365,11,mc,true);
   REAL y=396;ULONGLONG maxv=rows.empty()?1:rows.front().second;
   for(size_t i=0;i<rows.size()&&i<10&&y<h-35;i++){DrawText(g,rows[i].first,262,y,13,tc,true);DrawText(g,FormatTime(rows[i].second),w-145,y,12,mc);SolidBrush track(Color(255,235,237,241)),fill(blue);g.FillRectangle(&track,262,y+22,w-410,5);g.FillRectangle(&fill,262,y+22,(REAL)(w-410)*(REAL)rows[i].second/(REAL)maxv,5);y+=42;}
