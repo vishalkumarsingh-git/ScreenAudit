@@ -27,13 +27,23 @@ jobs:
         shell: pwsh
         run: |
           g++ --version
-          g++ -std=c++17 -O2 -Wall -Wextra -municode src/main.cpp -o ScreenAudit.exe -static -static-libgcc -static-libstdc++ -lgdiplus -luser32 -lgdi32 -lshell32 -lpsapi -lwtsapi32 -ldwmapi -lcomdlg32 -lcomctl32 -ladvapi32 -mwindows
+          g++ -std=c++17 -O2 -Wall -Wextra -municode src/main.cpp -o ScreenAudit.exe -static -static-libgcc -static-libstdc++ -lgdiplus -luser32 -lgdi32 -lshell32 -lpsapi -lwtsapi32 -ldwmapi -lcomdlg32 -lcomctl32 -ladvapi32 -luiautomationcore -lole32 -loleaut32 -mwindows
           if ($LASTEXITCODE -ne 0) { throw "ScreenAudit compilation failed." }
 
-      - name: Upload executable
+      - name: Build installer
+        shell: pwsh
+        run: |
+          choco install innosetup --yes --no-progress
+          New-Item -ItemType Directory -Force dist | Out-Null
+          iscc installer/ScreenAudit.iss
+          if ($LASTEXITCODE -ne 0) { throw "ScreenAudit installer build failed." }
+
+      - name: Upload executable and installer
         uses: actions/upload-artifact@v4
         with:
           name: ScreenAudit-windows-x64
-          path: ScreenAudit.exe
+          path: |
+            ScreenAudit.exe
+            dist/ScreenAudit-Setup-x64.exe
           if-no-files-found: error
           retention-days: 30
