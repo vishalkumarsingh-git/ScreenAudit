@@ -18,10 +18,12 @@
 - Foreground-window notifications using `SetWinEventHook(EVENT_SYSTEM_FOREGROUND, ...)`.
 - Executable-name attribution, with best-effort child-process lookup for `ApplicationFrameHost.exe`.
 - Idle exclusion using `GetLastInputInfo()` on a 15-second timer; default cutoff is five minutes.
-- Daily CSV append logs named `YYYY-MM-DD.csv`.
+- Daily UTF-8 CSV append logs named `YYYY-MM-DD.csv`, with binary-safe multi-day export.
 - Dashboard with today's accumulated usage and a ranked application list.
-- Notification-area context menu: open, pause/resume, export, startup toggle, and exit.
+- Notification-area context menu: open, pause/resume, export, startup toggle, dark-mode toggle, idle-cutoff selection (3/5/10 minutes), and exit.
 - Session-unlock notification registration (counts are in memory only in this version).
+- Startup registration quotes the executable path so installations under directories containing spaces work correctly.
+- Dashboard reports the tracked-app count rather than displaying today's total as a misleading daily average.
 
 ## Current scope and limitations
 
