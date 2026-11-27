@@ -25,7 +25,7 @@ jobs:
       - name: Compile ScreenAudit
         shell: pwsh
         run: |
-          cl /nologo /std:c++17 /O2 /W4 /EHsc /MT /DUNICODE /D_UNICODE src\main.cpp /Fe:ScreenAudit.exe /link /SUBSYSTEM:WINDOWS gdiplus.lib user32.lib gdi32.lib shell32.lib psapi.lib wtsapi32.lib dwmapi.lib comdlg32.lib comctl32.lib advapi32.lib UIAutomationCore.lib ole32.lib oleaut32.lib
+          cl /nologo /utf-8 /std:c++17 /O2 /W4 /EHsc /MT /DUNICODE /D_UNICODE src\main.cpp /Fe:ScreenAudit.exe /link /SUBSYSTEM:WINDOWS gdiplus.lib user32.lib gdi32.lib shell32.lib psapi.lib wtsapi32.lib dwmapi.lib comdlg32.lib comctl32.lib advapi32.lib UIAutomationCore.lib ole32.lib oleaut32.lib
           if ($LASTEXITCODE -ne 0) { throw "ScreenAudit compilation failed." }
 
       - name: Build installer
