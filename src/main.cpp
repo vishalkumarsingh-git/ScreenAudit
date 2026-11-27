@@ -2,6 +2,7 @@
 #define _UNICODE
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include <propidl.h>
 #include <gdiplus.h>
 #include <shellapi.h>
 #include <psapi.h>
@@ -15,6 +16,7 @@
 #include <vector>
 #include <map>
 #include <fstream>
+#include <filesystem>
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
@@ -74,7 +76,7 @@ static void AppendCsv(const std::wstring& exe,ULONGLONG ms){
  if(ms<1000)return;
  std::wstring path=Join(g_dataDir,g_today+L".csv");
  bool exists=GetFileAttributesW(path.c_str())!=INVALID_FILE_ATTRIBUTES;
- std::ofstream f(path,std::ios::binary|std::ios::app); if(!f)return;
+ std::ofstream f(std::filesystem::path(path),std::ios::binary|std::ios::app); if(!f)return;
  if(!exists)f<<"date,application,seconds\r\n";
  std::wstring row=CsvEscape(g_today)+L","+CsvEscape(exe)+L","+std::to_wstring(ms/1000)+L"\r\n";
  f<<ToUtf8(row);
@@ -135,7 +137,7 @@ static std::wstring FormatTime(ULONGLONG ms){
 static ULONGLONG TodayTotal(){ULONGLONG n=0;for(auto&x:g_usage)n+=x.second;return n;}
 static void LoadToday(){
  g_usage.clear(); g_today=DateKey();
- std::wstring p=Join(g_dataDir,g_today+L".csv"); std::wifstream f(p); if(!f)return;
+ std::wstring p=Join(g_dataDir,g_today+L".csv"); std::wifstream f(std::filesystem::path(p)); if(!f)return;
  std::wstring line; std::getline(f,line);
  while(std::getline(f,line)){
   size_t a=line.find(L",\""); if(a==std::wstring::npos)continue;
@@ -180,8 +182,8 @@ static void Paint(HWND hwnd){
  for(auto&r:rows){if(shown++>=10)break;
   DrawText(g,r.first,42,y,13,tc);DrawText(g,FormatTime(r.second),w-125,y,12,mc);
   SolidBrush track(Color(255,GetRValue(C_BORDER),GetGValue(C_BORDER),GetBValue(C_BORDER)));
-  SolidBrush fill(Color(255,0,120,212));g.FillRectangle(&track,42,y+23,w-170,5);
-  g.FillRectangle(&fill,42,y+23,(REAL)(w-170)*r.second/maxv,5); y+=42;
+  SolidBrush fill(Color(255,0,120,212));g.FillRectangle(&track,(REAL)42,y+(REAL)23,(REAL)(w-170),(REAL)5);
+  g.FillRectangle(&fill,(REAL)42,y+(REAL)23,(REAL)(w-170)*(REAL)r.second/(REAL)maxv,(REAL)5); y+=42;
  }
  if(rows.empty())DrawText(g,L"Usage will appear here as you switch between apps.",42,y,13,mc);
  DrawText(g,g_tracking?L"Tracking: On":L"Tracking: Paused",24,h-18,11,mc);
@@ -196,7 +198,7 @@ static void ExportCsv(){
  std::ofstream out(path,std::ios::binary);if(!out)return;out<<"date,application,seconds\r\n";
  WIN32_FIND_DATAW fd;HANDLE f=FindFirstFileW(Join(g_dataDir,L"????-??-??.csv").c_str(),&fd);
  if(f!=INVALID_HANDLE_VALUE){do{
-  std::ifstream in(Join(g_dataDir,fd.cFileName),std::ios::binary);
+  std::ifstream in(std::filesystem::path(Join(g_dataDir,fd.cFileName)),std::ios::binary);
   std::string line;bool header=true;
   while(std::getline(in,line)){if(header){header=false;continue;}out<<line<<"\r\n";}
  }while(FindNextFileW(f,&fd));FindClose(f);}
