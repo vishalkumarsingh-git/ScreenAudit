@@ -19,6 +19,7 @@
 #include <iomanip>
 #include <algorithm>
 #include <ctime>
+#include <cwchar>
 
 #pragma comment(lib, "gdiplus.lib")
 #pragma comment(lib, "comctl32.lib")
@@ -41,7 +42,7 @@ static COLORREF C_BG, C_CARD, C_TEXT, C_MUTED, C_BORDER, C_BLUE=RGB(0,120,212);
 
 static std::wstring Join(const std::wstring&a,const std::wstring&b){return a+L"\\"+b;}
 static std::wstring DateKey(){
- SYSTEMTIME st; GetLocalTime(&st); wchar_t b[16]; swprintf(b,_countof(b),L"%04u-%02u-%02u",st.wYear,st.wMonth,st.wDay); return b;
+ SYSTEMTIME st; GetLocalTime(&st); wchar_t b[16]; swprintf(b,sizeof(b)/sizeof(b[0]),L"%04u-%02u-%02u",st.wYear,st.wMonth,st.wDay); return b;
 }
 static std::wstring AppDataDir(){
  wchar_t p[MAX_PATH]={}; DWORD n=GetEnvironmentVariableW(L"APPDATA",p,MAX_PATH);
@@ -216,7 +217,7 @@ static LRESULT CALLBACK WndProc(HWND h,UINT m,WPARAM wp,LPARAM lp){
  switch(m){
  case WM_CREATE:{
   g_hwnd=h;NOTIFYICONDATAW n{};n.cbSize=sizeof(n);n.hWnd=h;n.uID=ID_TRAY;n.uFlags=NIF_MESSAGE|NIF_ICON|NIF_TIP;n.uCallbackMessage=WM_TRAY;
-  n.hIcon=LoadIconW(nullptr,IDI_APPLICATION);wcscpy_s(n.szTip,_countof(n.szTip),L"ScreenAudit");Shell_NotifyIconW(NIM_ADD,&n);
+  n.hIcon=LoadIconW(nullptr,IDI_APPLICATION);lstrcpynW(n.szTip,L"ScreenAudit",(int)(sizeof(n.szTip)/sizeof(n.szTip[0])));Shell_NotifyIconW(NIM_ADD,&n);
   WTSRegisterSessionNotification(h,NOTIFY_FOR_THIS_SESSION);
   g_hook=SetWinEventHook(EVENT_SYSTEM_FOREGROUND,EVENT_SYSTEM_FOREGROUND,nullptr,WinEventProc,0,0,WINEVENT_OUTOFCONTEXT|WINEVENT_SKIPOWNPROCESS);
   SetTimer(h,1,15000,nullptr);g_lastTick=GetTickCount64();OnForeground();return 0;}
