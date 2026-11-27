@@ -217,38 +217,47 @@ static void Card(Graphics&g,REAL x,REAL y,REAL w,REAL h){
  g.FillRectangle(&b,x,y,w,h);g.DrawRectangle(&p,x,y,w,h);
 }
 static void Paint(HWND hwnd){
- PAINTSTRUCT ps; HDC hdc=BeginPaint(hwnd,&ps); RECT rc;GetClientRect(hwnd,&rc);
- int w=rc.right,h=rc.bottom;
- Bitmap bmp(w,h); Graphics g(&bmp);g.SetSmoothingMode(SmoothingModeAntiAlias);
- g.Clear(Color(255,GetRValue(C_BG),GetGValue(C_BG),GetBValue(C_BG)));
- DrawText(g,L"ScreenAudit",24,18,25,Color(255,GetRValue(C_TEXT),GetGValue(C_TEXT),GetBValue(C_TEXT)),true);
- DrawText(g,L"Screen time and activity",25,50,12,Color(255,GetRValue(C_MUTED),GetGValue(C_MUTED),GetBValue(C_MUTED)));
- Pen blue(Color(255,0,120,212),3);g.DrawLine(&blue,24,78,142,78);
- REAL top=98, gap=14, cw=(w-64-gap*2)/3;
- Card(g,24,top,cw,104);Card(g,24+cw+gap,top,cw,104);Card(g,24+2*(cw+gap),top,cw,104);
- auto tc=Color(255,GetRValue(C_TEXT),GetGValue(C_TEXT),GetBValue(C_TEXT));
- auto mc=Color(255,GetRValue(C_MUTED),GetGValue(C_MUTED),GetBValue(C_MUTED));
- DrawText(g,L"TODAY'S SCREEN TIME",40,112,10,mc,true);
- DrawText(g,FormatTime(TodayTotal()),40,138,27,tc,true);
- DrawText(g,L"TRACKED APPS",40+cw+gap,112,10,mc,true);
- DrawText(g,std::to_wstring(g_usage.size()),40+cw+gap,138,27,tc,true);
- DrawText(g,L"CURRENT APP",40+2*(cw+gap),112,10,mc,true);
- DrawText(g,g_currentExe,40+2*(cw+gap),140,17,tc,true);
- Card(g,24,top+120,w-48,h-top-145);
- DrawText(g,L"App usage today",42,top+137,17,tc,true);
+ PAINTSTRUCT ps;HDC hdc=BeginPaint(hwnd,&ps);RECT rc;GetClientRect(hwnd,&rc);int w=rc.right,h=rc.bottom;
+ Bitmap bmp(w,h);Graphics g(&bmp);g.SetSmoothingMode(SmoothingModeAntiAlias);
+ auto col=[](COLORREF c){return Color(255,GetRValue(c),GetGValue(c),GetBValue(c));};
+ auto tc=col(C_TEXT),mc=col(C_MUTED),blue=Color(255,0,120,212);
+ g.Clear(col(C_BG));SolidBrush side(Color(255,255,255));g.FillRectangle(&side,0,0,220,h);
+ Pen div(Color(255,226,226,230),1);g.DrawLine(&div,219,0,219,h);
+ DrawText(g,L"◉  ScreenAudit",18,18,18,Color(255,28,28,32),true);
+ DrawText(g,L"LOCAL ACTIVITY",19,53,9,Color(255,135,135,145),true);
+ const wchar_t* nav[]={L"◉   Screen Time",L"▥   Reports",L"⊘   Do Not Monitor",L"⚙   Settings"};
+ for(int i=0;i<4;i++){REAL y=92+i*48;if(g_page==i){SolidBrush active(Color(255,232,241,255));g.FillRectangle(&active,8,y,202,40);}DrawText(g,nav[i],20,y+10,13,g_page==i?blue:Color(255,42,42,48),g_page==i);}
+ DrawText(g,L"FREE • ALL FEATURES",18,h-30,9,Color(255,110,110,120),true);
+ const wchar_t* labels[]={L"Screen Time",L"Usage reports",L"Excluded applications",L"Settings"};
+ DrawText(g,labels[g_page],244,38,25,tc,true);
+ DrawText(g,g_page==0?L"WINDOWS DESKTOP":g_page==1?L"ACTIVITY HISTORY":g_page==2?L"PRIVACY CONTROLS":L"PREFERENCES",244,18,9,mc,true);
+ SolidBrush btn(Color(255,255,255));Pen bp(Color(255,215,215,222),1);g.FillRectangle(&btn,w-112,16,92,34);g.DrawRectangle(&bp,w-112,16,92,34);
+ DrawText(g,g_tracking?L"Ⅱ  Pause":L"▶  Resume",w-100,26,11,tc,true);
  std::vector<std::pair<std::wstring,ULONGLONG>> rows(g_usage.begin(),g_usage.end());
  std::sort(rows.begin(),rows.end(),[](auto&a,auto&b){return a.second>b.second;});
- REAL y=top+174; int shown=0; ULONGLONG maxv=rows.empty()?1:rows.front().second;
- for(auto&r:rows){if(shown++>=10)break;
-  DrawText(g,r.first,42,y,13,tc);DrawText(g,FormatTime(r.second),w-125,y,12,mc);
-  SolidBrush track(Color(255,GetRValue(C_BORDER),GetGValue(C_BORDER),GetBValue(C_BORDER)));
-  SolidBrush fill(Color(255,0,120,212));g.FillRectangle(&track,(REAL)42,y+(REAL)23,(REAL)(w-170),(REAL)5);
-  g.FillRectangle(&fill,(REAL)42,y+(REAL)23,(REAL)(w-170)*(REAL)r.second/(REAL)maxv,(REAL)5); y+=42;
+ if(g_page==0){
+  Card(g,240,92,w-264,132);DrawText(g,L"ACTIVE TODAY",262,112,10,mc,true);DrawText(g,FormatTime(TodayTotal()),260,136,34,tc,true);
+  DrawText(g,L"Tracked applications  "+std::to_wstring(g_usage.size()),262,188,11,mc);
+  Card(g,240,242,w-264,86);DrawText(g,L"CURRENT ACTIVITY",260,258,10,mc,true);
+  DrawText(g,g_currentExe+L"   •   "+g_currentContext,260,281,14,tc,true);
+  Card(g,240,346,w-264,h-366);DrawText(g,L"MOST USED",260,365,11,mc,true);
+  REAL y=396;ULONGLONG maxv=rows.empty()?1:rows.front().second;
+  for(size_t i=0;i<rows.size()&&i<10&&y<h-35;i++){DrawText(g,rows[i].first,262,y,13,tc,true);DrawText(g,FormatTime(rows[i].second),w-145,y,12,mc);SolidBrush track(Color(255,235,237,241)),fill(blue);g.FillRectangle(&track,262,y+22,w-410,5);g.FillRectangle(&fill,262,y+22,(REAL)(w-410)*(REAL)rows[i].second/(REAL)maxv,5);y+=42;}
+  if(rows.empty())DrawText(g,L"Your app usage will appear here as you use Windows.",262,405,13,mc);
+ }else if(g_page==1){
+  Card(g,240,92,w-264,h-116);DrawText(g,L"APPLICATION USAGE • TODAY",262,112,11,mc,true);REAL y=150;
+  for(auto&r:rows){if(y>h-55)break;DrawText(g,r.first,262,y,13,tc,true);DrawText(g,FormatTime(r.second),w-145,y,12,mc);y+=34;}
+  if(rows.empty())DrawText(g,L"No activity recorded yet.",262,155,13,mc);
+ }else if(g_page==2){
+  Card(g,240,92,w-264,h-116);DrawText(g,L"Select apps to exclude from future tracking. Existing history is retained.",262,112,12,mc);
+  REAL y=152;for(auto&r:rows){if(y>h-60)break;DrawText(g,r.first,262,y,13,tc,true);bool ignored=g_ignoredApps.count(r.first)!=0;SolidBrush b(ignored?Color(255,232,241,255):Color(255,255,255));Pen p(Color(255,210,210,218),1);g.FillRectangle(&b,w-390,y-5,110,27);g.DrawRectangle(&p,w-390,y-5,110,27);DrawText(g,ignored?L"Excluded":L"Monitor",w-377,y+2,11,ignored?blue:tc,true);y+=39;}
+  if(rows.empty())DrawText(g,L"Apps appear here after they have been monitored.",262,155,13,mc);
+ }else{
+  Card(g,240,92,w-264,250);DrawText(g,L"GENERAL",262,112,11,mc,true);DrawText(g,L"Run ScreenAudit when I sign in",262,153,14,tc);DrawText(g,g_startup?L"Enabled":L"Disabled",w-340,153,12,g_startup?blue:mc,true);
+  DrawText(g,L"Click this row to toggle automatic startup.",262,181,11,mc);DrawText(g,L"Tracking",262,229,14,tc,true);DrawText(g,L"Idle cutoff: "+std::to_wstring(g_idleCutoff)+L" minutes",262,258,12,mc);
+  Card(g,240,360,w-264,120);DrawText(g,L"BROWSER CONTEXT",262,380,11,mc,true);DrawText(g,L"Reads the active browser address-bar URL when available.",262,408,12,tc);DrawText(g,L"Recognized domains are labelled; full URLs are not stored.",262,434,11,mc);
  }
- if(rows.empty())DrawText(g,L"Usage will appear here as you switch between apps.",42,y,13,mc);
- DrawText(g,g_tracking?L"Tracking: On":L"Tracking: Paused",24,h-18,11,mc);
- Graphics target(hdc);target.DrawImage(&bmp,0,0);
- EndPaint(hwnd,&ps);
+ Graphics target(hdc);target.DrawImage(&bmp,0,0);EndPaint(hwnd,&ps);
 }
 static void ExportCsv(){
  OPENFILENAMEW o{}; wchar_t path[MAX_PATH]=L"ScreenAudit-usage.csv";
@@ -286,7 +295,7 @@ static void TrayMenu(){
  if(c==100)ShowWindow(g_hwnd,SW_SHOW);
  if(c==101){FlushCurrent();g_tracking=!g_tracking;SaveSetting(L"Tracking",L"Enabled",g_tracking);g_lastTick=GetTickCount64();InvalidateRect(g_hwnd,nullptr,TRUE);}
  if(c==102)ExportCsv();
- if(c==103){HKEY k;bool on=false;if(RegOpenKeyExW(HKEY_CURRENT_USER,L"Software\\Microsoft\\Windows\\CurrentVersion\\Run",0,KEY_QUERY_VALUE,&k)==ERROR_SUCCESS){on=RegQueryValueExW(k,L"ScreenAudit",0,nullptr,nullptr,nullptr)==ERROR_SUCCESS;RegCloseKey(k);}SetStartup(!on);}
+ if(c==103){SaveStartup(!g_startup);}
  if(c==105){g_dark=!g_dark;SaveSetting(L"Appearance",L"Dark",g_dark?1:0);RefreshColors();BOOL dark=g_dark?TRUE:FALSE;DwmSetWindowAttribute(g_hwnd,20,&dark,sizeof(dark));InvalidateRect(g_hwnd,nullptr,TRUE);}
  if(c==106||c==107||c==108){g_idleCutoff=c==106?3:(c==107?5:10);SaveSetting(L"Tracking",L"IdleCutoffMinutes",g_idleCutoff);}
  if(c==104){g_closing=true;DestroyWindow(g_hwnd);}
@@ -307,6 +316,17 @@ static LRESULT CALLBACK WndProc(HWND h,UINT m,WPARAM wp,LPARAM lp){
   InvalidateRect(h,nullptr,FALSE);return 0;}
  case WM_WTSSESSION_CHANGE:if(wp==WTS_SESSION_UNLOCK)++g_pickups;return 0;
  case WM_TRAY:if(lp==WM_RBUTTONUP||lp==WM_CONTEXTMENU)TrayMenu();else if(lp==WM_LBUTTONUP)ShowWindow(h,SW_SHOW);return 0;
+ case WM_LBUTTONUP:{
+  int x=GET_X_LPARAM(lp),y=GET_Y_LPARAM(lp);
+  if(x<220&&y>=92&&y<284){g_page=(y-92)/48;InvalidateRect(h,nullptr,TRUE);}
+  else if(x>w-120&&y<60){FlushCurrent();g_tracking=!g_tracking;SaveSetting(L"Tracking",L"Enabled",g_tracking);g_lastTick=GetTickCount64();InvalidateRect(h,nullptr,TRUE);}
+  else if(g_page==2&&x>w-410&&x<w-260&&y>=145){
+   int idx=(y-147)/39;std::vector<std::pair<std::wstring,ULONGLONG>> r(g_usage.begin(),g_usage.end());std::sort(r.begin(),r.end(),[](auto&a,auto&b){return a.second>b.second;});
+   if(idx>=0&&idx<(int)r.size()){auto name=r[idx].first;if(g_ignoredApps.count(name))g_ignoredApps.erase(name);else g_ignoredApps.insert(name);SaveIgnored();}
+   InvalidateRect(h,nullptr,TRUE);
+  }else if(g_page==3&&y>=135&&y<210){SaveStartup(!g_startup);InvalidateRect(h,nullptr,TRUE);}
+  return 0;
+ }
  case WM_SYSCOMMAND:if((wp&0xFFF0)==SC_CLOSE){ShowWindow(h,SW_HIDE);return 0;}break;
  case WM_ERASEBKGND:return 1;
  case WM_PAINT:Paint(h);return 0;
@@ -323,7 +343,7 @@ int WINAPI wWinMain(HINSTANCE inst,HINSTANCE, PWSTR,int){
  INITCOMMONCONTROLSEX ic{sizeof(ic),ICC_STANDARD_CLASSES};InitCommonControlsEx(&ic);
  WNDCLASSEXW wc{sizeof(wc)};wc.lpfnWndProc=WndProc;wc.hInstance=inst;wc.hCursor=LoadCursorW(nullptr,IDC_ARROW);wc.hIcon=LoadIconW(nullptr,IDI_APPLICATION);wc.hbrBackground=nullptr;wc.lpszClassName=L"ScreenAuditWindow";
  if(!RegisterClassExW(&wc))return 1;
- DWORD ex=WS_EX_APPWINDOW;HWND h=CreateWindowExW(ex,wc.lpszClassName,APP_NAME,WS_OVERLAPPEDWINDOW,CW_USEDEFAULT,CW_USEDEFAULT,900,650,nullptr,nullptr,inst,nullptr);
+ DWORD ex=WS_EX_APPWINDOW;HWND h=CreateWindowExW(ex,wc.lpszClassName,APP_NAME,WS_OVERLAPPEDWINDOW,CW_USEDEFAULT,CW_USEDEFAULT,1180,780,nullptr,nullptr,inst,nullptr);
  if(!h)return 2;g_hwnd=h;
  BOOL dark=g_dark?TRUE:FALSE;DwmSetWindowAttribute(h,20,&dark,sizeof(dark));
  ShowWindow(h,SW_SHOW);UpdateWindow(h);
