@@ -160,11 +160,11 @@ static std::wstring ContextFromUrl(const std::wstring& url){
  size_t scheme=url.find(L"://");if(scheme==std::wstring::npos)return L"Browser • URL not available";
  size_t begin=scheme+3,end=url.find_first_of(L"/?#:",begin);std::wstring host=url.substr(begin,end==std::wstring::npos?std::wstring::npos:end-begin);
  std::transform(host.begin(),host.end(),host.begin(),towlower);
- auto domain=[&](const wchar_t* d){std::wstring suffix=L".";suffix+=d;size_t n=wcslen(d);return host==d||(host.size()>n&&host.compare(host.size()-n,n,d)==0&&host[host.size()-n-1]==L'.');};
+ auto domain=[&](const wchar_t* d){size_t n=wcslen(d);return host==d||(host.size()>n&&host.compare(host.size()-n,n,d)==0&&host[host.size()-n-1]==L'.');};
  if(domain(L"pw.live")||domain(L"physicswallah.com"))return L"Physics Wallah • verified URL";
  if(domain(L"youtube.com")||domain(L"youtu.be"))return L"YouTube • verified URL";
  if(domain(L"instagram.com"))return L"Instagram • verified URL";
- if(domain(L"chatgpt.com")||domain(L"openai.com"))return L"ChatGPT / OpenAI • verified URL";
+ if(domain(L"chatgpt.com")||host==L"chat.openai.com")return L"ChatGPT • verified URL";
  if(domain(L"gemini.google.com"))return L"Google Gemini • verified URL";
  if(domain(L"claude.ai"))return L"Claude • verified URL";
  if(domain(L"perplexity.ai"))return L"Perplexity • verified URL";
