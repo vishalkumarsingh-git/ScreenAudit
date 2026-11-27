@@ -1,0 +1,39 @@
+name: Build ScreenAudit
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up MinGW-w64
+        uses: egor-tensin/setup-mingw@v2
+        with:
+          version: 12.2.0
+          platform: x64
+
+      - name: Compile ScreenAudit
+        shell: pwsh
+        run: |
+          g++ --version
+          g++ -std=c++17 -O2 -Wall -Wextra -municode src/main.cpp -o ScreenAudit.exe -static -static-libgcc -static-libstdc++ -lgdiplus -luser32 -lgdi32 -lshell32 -lpsapi -lwtsapi32 -ldwmapi -lcomdlg32 -lcomctl32 -ladvapi32 -mwindows
+          if ($LASTEXITCODE -ne 0) { throw "ScreenAudit compilation failed." }
+
+      - name: Upload executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: ScreenAudit-windows-x64
+          path: ScreenAudit.exe
+          if-no-files-found: error
+          retention-days: 30
