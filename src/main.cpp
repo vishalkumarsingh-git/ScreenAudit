@@ -248,7 +248,7 @@ static void Paint(HWND hwnd){
   DrawText(g,g_currentTitle,260,303,10,mc);
   Card(g,240,346,w-264,h-366);DrawText(g,L"MOST USED",260,365,11,mc,true);
   REAL y=396;ULONGLONG maxv=rows.empty()?1:rows.front().second;
-  for(size_t i=0;i<rows.size()&&i<10&&y<h-35;i++){DrawText(g,rows[i].first,262,y,13,tc,true);DrawText(g,FormatTime(rows[i].second),w-145,y,12,mc);SolidBrush track(Color(255,235,237,241)),fill(blue);g.FillRectangle(&track,(REAL)262,y+(REAL)22,(REAL)(w-410),(REAL)5);g.FillRectangle(&fill,262,y+22,(REAL)(w-410)*(REAL)rows[i].second/(REAL)maxv,5);y+=42;}
+  for(size_t i=0;i<rows.size()&&i<10&&y<h-35;i++){DrawText(g,rows[i].first,262,y,13,tc,true);DrawText(g,FormatTime(rows[i].second),w-145,y,12,mc);SolidBrush track(Color(255,235,237,241)),fill(blue);g.FillRectangle(&track,(REAL)262,y+(REAL)22,(REAL)(w-410),(REAL)5);g.FillRectangle(&fill,(REAL)262,(REAL)(y+22),(REAL)(w-410)*(REAL)rows[i].second/(REAL)maxv,(REAL)5);y+=42;}
   if(rows.empty())DrawText(g,L"Your app usage will appear here as you use Windows.",262,405,13,mc);
  }else if(g_page==1){
   Card(g,240,92,w-264,h-116);DrawText(g,L"APPLICATION USAGE • TODAY",262,112,11,mc,true);REAL y=150;
@@ -323,10 +323,11 @@ static LRESULT CALLBACK WndProc(HWND h,UINT m,WPARAM wp,LPARAM lp){
  case WM_WTSSESSION_CHANGE:if(wp==WTS_SESSION_UNLOCK)++g_pickups;return 0;
  case WM_TRAY:if(lp==WM_RBUTTONUP||lp==WM_CONTEXTMENU)TrayMenu();else if(lp==WM_LBUTTONUP)ShowWindow(h,SW_SHOW);return 0;
  case WM_LBUTTONUP:{
+  RECT clientRect{};GetClientRect(h,&clientRect);int clientW=clientRect.right;
   int x=GET_X_LPARAM(lp),y=GET_Y_LPARAM(lp);
   if(x<220&&y>=92&&y<284){g_page=(y-92)/48;InvalidateRect(h,nullptr,TRUE);}
-  else if(x>w-120&&y<60){FlushCurrent();g_tracking=!g_tracking;SaveSetting(L"Tracking",L"Enabled",g_tracking);g_lastTick=GetTickCount64();InvalidateRect(h,nullptr,TRUE);}
-  else if(g_page==2&&x>w-410&&x<w-260&&y>=145){
+  else if(x>clientW-120&&y<60){FlushCurrent();g_tracking=!g_tracking;SaveSetting(L"Tracking",L"Enabled",g_tracking);g_lastTick=GetTickCount64();InvalidateRect(h,nullptr,TRUE);}
+  else if(g_page==2&&x>clientW-410&&x<clientW-260&&y>=145){
    int idx=(y-147)/39;std::vector<std::pair<std::wstring,ULONGLONG>> r(g_usage.begin(),g_usage.end());std::sort(r.begin(),r.end(),[](auto&a,auto&b){return a.second>b.second;});
    if(idx>=0&&idx<(int)r.size()){auto name=r[idx].first;if(g_ignoredApps.count(name))g_ignoredApps.erase(name);else g_ignoredApps.insert(name);SaveIgnored();}
    InvalidateRect(h,nullptr,TRUE);
